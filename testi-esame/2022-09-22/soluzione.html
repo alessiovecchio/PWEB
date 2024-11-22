@@ -37,14 +37,14 @@
         </style>
 
         <script>
-
+        'use strict';
         // Numero di colonne della tabella
         const NUM_COL = 5;
         // Numero di righe della tabella
         const NUM_RIG = 5;
         // Tempo 5 secondi
         const TEMPO = 3000;
-        // La lettera che si sposta
+        // La lettera X
         const X = "X";
         // Cella vuota
         const VUOTO = "";
@@ -58,13 +58,6 @@
         let v = [];
         // Numero di caselle selezionate dall'utente
         let tentativi = 0;
-
-        // Funzione eseguita al caricamento
-        function costruisci() {
-            // Crea la tabella
-            generaTabella();
-            inizializza();
-        }
 
         // Crea una tabella vuota
         function generaTabella() {
@@ -106,7 +99,6 @@
                 if(index > -1) {
                     console.log("Hai fatto un punto");
                     punti++;
-                    //v.splice(index, 1); 
                 }
                 tentativi++;
                 if(tentativi===NUM_X) {
@@ -118,23 +110,22 @@
         // Il gioco ha inizio
         function start(){
             // Per partite successive alla prima...
-            if(punti > 0) {
-                // ... esegue alcune operazioni di inizializzazione
-                punti = 0;
-                const e = document.getElementById("messaggio");
-                e.innerText = "";
-                for (let i = 0; i < NUM_RIG*NUM_COL; i++) {
-                    const c = document.getElementById(i);
-                    c.value = VUOTO;
-                    c.classList.remove("selezionata");
-                }
+            // esegue alcune operazioni di inizializzazione
+            punti = 0;
+            const e = document.getElementById("messaggio");
+            e.innerText = "";
+            for (let i = 0; i < NUM_RIG*NUM_COL; i++) {
+                const c = document.getElementById(i);
+                c.value = VUOTO;
+                c.classList.remove("selezionata");
             }
+            
             // Aggiorna lo stato dei bottoni
 			updateButtonStatus();
             // Inserisce le X nelle caselle
             riempi();
             // Avvia un timer in modo da far sparire le X dopo un certo tempo
-            timerid = setTimeout(svuota, TEMPO);
+            setTimeout(svuota, TEMPO);
             tentativi = 0;
             console.log("Caselle piene: " + v);
 		}
@@ -142,7 +133,7 @@
 
         function svuota() {
             for (let i = 0; i < NUM_RIG*NUM_COL; i++) {
-                    document.getElementById(i).value = VUOTO;             
+                document.getElementById(i).value = VUOTO;             
             }
             avviato = true;
         }
@@ -193,13 +184,21 @@
             startButton.disabled = !startButton.disabled;
         }
 
+        // Funzione eseguita al caricamento
+        function costruisci() {
+            // Crea la tabella
+            generaTabella();
+            inizializza();
+        }
+
+        document.addEventListener("DOMContentLoaded", costruisci);
         </script>
     </head>
 
-    <body onload="costruisci()">
+    <body>
         <div id="tabella">
         </div>
-        <div id="keypad">
+        <div>
               <button id="start" type="button">Avvia</button>
         </div>
         <p id="messaggio"></p> 
