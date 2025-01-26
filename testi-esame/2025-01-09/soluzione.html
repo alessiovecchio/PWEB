@@ -95,7 +95,6 @@
             e.target.classList = 'occupato';
             e.target.removeEventListener('click', seleziona);
             stampaPrenotazioni(statoSpettacolo.prenotazioni);
-            localStorage.setItem('stato', JSON.stringify(stato));
         }
 
         function visualizzaSpettacolo(spettacolo) {
@@ -175,8 +174,8 @@
 
 <body>
     <div id="dati">
-        <label>Nome</label><input type="text" id="nome" required pattern="^[A-Z][a-z]{2, 9}$">
-        <label>Cognome</label><input type="text" id="cognome" required pattern="^[A-Z][a-z]{2, 9}$">
+        <label>Nome</label><input type="text" id="nome" required pattern="^[A-Z][a-z]{2,9}$">
+        <label>Cognome</label><input type="text" id="cognome" required pattern="^[A-Z][a-z]{2,9}$">
         <label>Spettacolo</label><select id="spettacolo">
             <option value="15">15:00</option>
             <option value="18">18:00</option>
