@@ -151,7 +151,7 @@
                 r[t] = 0;
                 for(let s of spe) {
                     if(s.tipologia === t && s.mese === m) {
-                        r[t] += Number(s.ammontare);
+                        r[t] += s.ammontare;
                     }
                 }
             }
@@ -191,6 +191,7 @@
             mtd.innerText = String(max);
             mtd.style.verticalAlign = "top";
             tr1.appendChild(mtd);
+
             // La prima casella della seconda riga è vuota
             tr2.appendChild(document.createElement('td'));
 
