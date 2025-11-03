@@ -26,7 +26,7 @@
 				padding: 0.5em;
 				font-weight: bold;
                 font-size: 1.2rem;
-                margin: 2rem 1rem 0 0;
+                margin: 2rem 1rem;
 		}
         .casella.posecol {
            background-color: lightpink;
@@ -119,7 +119,7 @@
             e.innerText = "Tempo rimanente: " + tempo_rimanente;
             tempo_rimanente--;
             if(tempo_rimanente === 0) 
-                fine();    
+                fine(false);    
         }
 
         function fine(vittoria){
