@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestione Abbonamenti Palestra</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: lightgray;
+    }
+    header {
+      color: black;
+      padding: 1rem;
+      text-align: center;
+    }
+    main {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      max-width: 1100px;
+      margin: auto;
+    }
+    .forms {
+      margin-bottom: 2rem;
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .pannello-sinistro {
+      height: fit-content;
+    }
+    .pannello-sinistro input,
+    .pannello-sinistro button,
+    .pannello-destro input {
+      display: block;
+      box-sizing: border-box;
+      width: 90%;
+    }
+    input, select, button {
+      padding: 0.5rem;
+      margin: 0.3rem;
+      font-size: 1rem;
+    }
+    input:invalid {
+      border: 2px solid red;
+      background: #ffe6e6;
+    }
+    #rimuoviBtn {
+      background-color: red;
+      color: white;
+      margin-top: 3rem;
+    }
+    #rimuoviBtn:disabled {
+      background: lightgray;
+      color: dimgray;
+    }
+    .griglia {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
+    }
+    .abbonamento {
+      background: white;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .titolocorso {
+      margin-left: 2rem;
+      margin-top: 2rem;
+      font-weight: bold;
+      color: black;
+    }
+    .contenitorecorso {
+      border-radius: 8px;
+      margin-bottom: 2rem;
+      color: black;
+      height: fit-content;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .colorecorso-0 { background: #ffe082; }
+    .colorecorso-1 { background: #b2dfdb; }
+    .colorecorso-2 { background: #c5e1a5; }
+    .colorecorso-3 { background: #f8bbd0; }
+    .colorecorso-4 { background: #d1c4e9; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Gestione Abbonamenti Palestra</h1>
+  </header>
+  <main>
+    <div class="forms pannello-sinistro">
+      <h2>Aggiungi un nuovo abbonamento</h2>
+      <input type="text" id="nome" placeholder="Nome abbonato" />
+      <input type="number" id="eta" placeholder="Età" />
+      <input type="text" id="corso" placeholder="Corso scelto" />
+      <button id="aggiungiBtn">Aggiungi abbonamento</button>
+      <button id="rimuoviBtn">Rimuovi tutti gli abbonamenti</button>
+    </div>
+    <div class="pannello-destro">
+      <div class="forms">
+        <h2>Cerca abbonamenti</h2>
+        <input type="text" id="searchInput" placeholder="Cerca per nome abbonato" />
+      </div>
+      <div id="biblio" class="griglia"></div>
+    </div>
+  </main>
+  <script>
+    'use strict';
+    // Recupera gli abbonamenti salvati in localStorage o inizializza come array vuoto
+    let abbonamenti = JSON.parse(localStorage.getItem('abbonamenti') || '[]');
+    
+    // Converte l'array di abbonamenti in formato JSON e lo salva in localStorage
+    function salvaAbbonamenti() {
+      localStorage.setItem('abbonamenti', JSON.stringify(abbonamenti));
+    }
+    
+    // Aggiunge un nuovo abbonamento alla palestra
+    function aggiungiAbbonamento() {
+      const nomeInput = document.getElementById('nome');
+      const etaInput = document.getElementById('eta');
+      const corsoInput = document.getElementById('corso');
+      const nome = nomeInput.value.trim();
+      const eta = etaInput.value;
+      const corso = corsoInput.value.trim();
+      // Resetta validità
+      [nomeInput, etaInput, corsoInput].forEach(input => {
+        input.setCustomValidity("");
+      });
+      let mancante = false;
+      if (!nome) {
+        nomeInput.setCustomValidity("invalid");
+        mancante = true;
+      }
+      if (!eta) {
+        etaInput.setCustomValidity("invalid");
+        mancante = true;
+      }
+      if (!corso) {
+        corsoInput.setCustomValidity("invalid");
+        mancante = true;
+      }
+      if (mancante) {
+        alert('Compila tutti i campi.');
+        return;
+      }
+      abbonamenti.push({ nome, eta, corso });
+      salvaAbbonamenti();
+      mostraAbbonamenti();
+      aggiornaBottoneRimuovi();
+      nomeInput.value = '';
+      etaInput.value = '';
+      corsoInput.value = '';
+    }
+
+    // Rimuove tutti gli abbonamenti dalla palestra
+    function rimuoviAbbonamenti() {
+      if (confirm('Sei sicuro di voler rimuovere tutti gli abbonamenti?')) {
+        abbonamenti = [];
+        localStorage.removeItem('abbonamenti');
+        mostraAbbonamenti();
+        aggiornaBottoneRimuovi();
+      }
+    }
+
+    // Filtra e mostra gli abbonamenti in base alla ricerca
+    function cercaAbbonamenti() {
+      const query = document.getElementById('searchInput').value.trim().toLowerCase();
+      mostraAbbonamenti(query);
+    }
+
+    // Aggiorna lo stato del bottone "Rimuovi tutti gli abbonamenti"
+    function aggiornaBottoneRimuovi() {
+      const btn = document.getElementById('rimuoviBtn');
+      btn.disabled = abbonamenti.length === 0;
+    }
+
+    // Mostra gli abbonamenti raggruppati per corso
+    function mostraAbbonamenti(filter = '') {
+      const container = document.getElementById('biblio');
+      container.innerHTML = '';
+      const corsi = {};
+      // Raggruppa gli abbonamenti per corso
+      abbonamenti.forEach(abbonamento => {
+        if (!corsi[abbonamento.corso]) corsi[abbonamento.corso] = [];
+        corsi[abbonamento.corso].push(abbonamento);
+      });
+
+      const nomiCorsi = Object.keys(corsi);
+      nomiCorsi.forEach((nc, idx) => {
+        const filteredAbbonamenti = corsi[nc].filter(abbonamento =>
+          abbonamento.nome.toLowerCase().includes(filter)
+        );
+        if (filteredAbbonamenti.length === 0) return;
+        // Crea la scheda del corso
+        const corsoDiv = document.createElement('div');
+        corsoDiv.className = 'contenitorecorso colorecorso-' + (idx % 5);
+        // Crea il titolo del corso
+        const corsoTit = document.createElement('div');
+        corsoTit.className = 'titolocorso';
+        corsoTit.textContent = nc;
+        corsoDiv.appendChild(corsoTit);
+        // Crea la lista degli abbonamenti nel corso
+        const listaAbbonamenti = document.createElement('div');
+        filteredAbbonamenti.forEach(abbonamento => {
+          const abbonamentoDiv = document.createElement('div');
+          abbonamentoDiv.className = 'abbonamento';
+          const strong = document.createElement('strong');
+          strong.textContent = abbonamento.nome;
+          abbonamentoDiv.appendChild(strong);
+          abbonamentoDiv.appendChild(document.createElement('br'));
+          const etaText = document.createTextNode('Età: ' + abbonamento.eta);
+          abbonamentoDiv.appendChild(etaText);
+          listaAbbonamenti.appendChild(abbonamentoDiv);
+        });
+        corsoDiv.appendChild(listaAbbonamenti);
+        container.appendChild(corsoDiv);
+      });
+      aggiornaBottoneRimuovi();
+    }
+    function inizializza(){
+      document.getElementById('searchInput').addEventListener('input', cercaAbbonamenti);
+      document.getElementById('aggiungiBtn').addEventListener('click', aggiungiAbbonamento);
+      document.getElementById('rimuoviBtn').addEventListener('click', rimuoviAbbonamenti);
+      ['nome', 'eta', 'corso'].forEach(id => {
+        document.getElementById(id).addEventListener('input', event => {
+          event.target.setCustomValidity("");
+        });
+      });
+      mostraAbbonamenti();
+      aggiornaBottoneRimuovi();
+    }
+    document.addEventListener('DOMContentLoaded', inizializza);
+  </script>
+</body>
+</html>
