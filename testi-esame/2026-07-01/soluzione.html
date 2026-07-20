@@ -1,0 +1,277 @@
+<html>
+    <head>
+        <title>2026-06-30</title>
+        <meta charset="utf-8">
+        <style>
+        body {
+            background-color: lightblue;
+			font-weight: bold;
+            padding: 2em;
+        }
+        #contenitore {
+            display: flex;
+            flex-direction: row;
+        }
+        #tabella {
+            width: fit-content;
+            height: fit-content;
+            border: 3px solid black;
+        }
+        button {
+				padding: 0.5em;
+				font-weight: bold;
+                font-size: 1.2rem;
+                margin: 2rem 1rem 0 0;
+		}
+        p { 
+            margin: 1em;
+            color: black;
+            font-size: 1.5em;
+        }
+        .casella {
+           background-color: white;
+           width: 3rem;
+           height: 3rem;
+           text-align: center;				
+           font-weight: bold;
+           font-size: 2rem;
+        }
+        .casella.top {
+           background-color: yellow;
+        }
+        </style>
+
+        <script>
+        'use strict';
+
+        class Tabella {
+            static VUOTO = "";
+
+            constructor(id, lettere, numRighe) {
+                this.elemento = document.getElementById(id);
+                this.lettere = lettere;
+                this.numRighe = numRighe;
+                this.numColonne = lettere.length;
+            }
+
+            genera() {
+                this.generaIntestazione();
+                this.generaCaselle();
+            }
+
+            generaIntestazione() {
+                const riga = document.createElement("div");
+                this.elemento.appendChild(riga);
+
+                for(let j = 0; j < this.numColonne; j++) {
+                    const casella = document.createElement("input");
+                    casella.value = this.lettere[j];
+                    casella.setAttribute("class", "casella top");
+                    casella.setAttribute("readonly", "readonly");
+                    casella.id = "top-" + j;
+                    riga.appendChild(casella);
+                }
+            }
+
+            generaCaselle() {
+                for(let i = 0; i < this.numRighe; i++) {
+                    const riga = document.createElement("div");
+                    this.elemento.appendChild(riga);
+
+                    for(let j = 0; j < this.numColonne; j++) {
+                        const casella = document.createElement("input");
+                        casella.setAttribute("class", "casella");
+                        casella.setAttribute("readonly", "readonly");
+                        casella.id = this.idCasella(i, j);
+                        riga.appendChild(casella);
+                    }
+                }
+            }
+
+            svuota() {
+                for(let i = 0; i < this.numRighe; i++) {
+                    for(let j = 0; j < this.numColonne; j++) {
+                        this.casella(i, j).value = Tabella.VUOTO;
+                    }
+                }
+            }
+
+            trovaRigaLibera(colonna) {
+                for(let i = this.numRighe - 1; i >= 0; i--) {
+                    if(this.valore(i, colonna) === Tabella.VUOTO) {
+                        return i;
+                    }
+                }
+
+                return -1;
+            }
+
+            valore(riga, colonna) {
+                return this.casella(riga, colonna).value;
+            }
+
+            impostaValore(riga, colonna, valore) {
+                this.casella(riga, colonna).value = valore;
+            }
+
+            casella(riga, colonna) {
+                return document.getElementById(this.idCasella(riga, colonna));
+            }
+
+            idCasella(riga, colonna) {
+                return "casella-" + riga + "-" + colonna;
+            }
+        }
+
+        class Gioco {
+            static INTERVALLO = 3000;
+            static LETTERE = ['A', 'S', 'D', 'F', 'G', 'H'];
+            static NUM_RIGHE = 4;
+            static JOLLY = "*";
+
+            constructor() {
+                this.tabella = new Tabella("tabella", Gioco.LETTERE, Gioco.NUM_RIGHE);
+                this.prossimoSimbolo = document.getElementById("prossima");
+                this.messaggio = document.getElementById("messaggio");
+                this.startButton = document.getElementById("start");
+                this.timerId = null;
+                this.punti = 0;
+                this.simbolo = null;
+                this.simboloPosizionato = true;
+            }
+
+            costruisci() {
+                this.tabella.genera();
+                this.inizializza();
+            }
+
+            inizializza() {
+                this.startButton.addEventListener("click", () => this.start());
+                document.addEventListener("keydown", (event) => this.gestisciTasto(event));
+            }
+
+            start() {
+                this.reset();
+                this.aggiornaBottoneStart(true);
+                this.timerId = setInterval(() => this.generaProssimoSimbolo(), Gioco.INTERVALLO);
+            }
+
+            reset() {
+                this.punti = 0;
+                this.simbolo = null;
+                this.simboloPosizionato = true;
+                this.messaggio.innerText = "";
+                this.prossimoSimbolo.innerText = "";
+                this.tabella.svuota();
+            }
+
+            generaProssimoSimbolo() {
+                if(!this.simboloPosizionato) {
+                    this.giu(this.colonnaCasuale());
+                }
+
+                this.simbolo = this.generaSimbolo();
+                this.prossimoSimbolo.innerText = "Prossimo simbolo: " + this.simbolo;
+                this.simboloPosizionato = false;
+            }
+
+            generaSimbolo() {
+                const valore = Math.floor(Math.random() * 11);
+
+                if(valore === 10) {
+                    return Gioco.JOLLY;
+                }
+
+                return valore;
+            }
+
+            colonnaCasuale() {
+                return Math.floor(Math.random() * this.tabella.numColonne);
+            }
+
+            gestisciTasto(event) {
+                const colonna = Gioco.LETTERE.indexOf(event.code.charAt(3));
+
+                if(colonna !== -1) {
+                    this.giu(colonna);
+                }
+            }
+
+            giu(colonna) {
+                if(this.simboloPosizionato) {
+                    return;
+                }
+
+                this.simboloPosizionato = true;
+                const riga = this.tabella.trovaRigaLibera(colonna);
+
+                if(this.eliminaSimboloCompatibile(riga, colonna)) {
+                    this.punti++;
+                    return;
+                }
+
+                if(riga === -1) {
+                    this.fine();
+                    return;
+                }
+
+                this.tabella.impostaValore(riga, colonna, this.simbolo);
+                this.prossimoSimbolo.innerText = "";
+            }
+
+            eliminaSimboloCompatibile(riga, colonna) {
+                if(riga === this.tabella.numRighe - 1) {
+                    return false;
+                }
+
+                const valoreSotto = this.tabella.valore(riga + 1, colonna);
+
+                if(!this.simboliCompatibili(valoreSotto)) {
+                    return false;
+                }
+
+                this.tabella.impostaValore(riga + 1, colonna, Tabella.VUOTO);
+                return true;
+            }
+
+            simboliCompatibili(valore) {
+                return valore == this.simbolo ||
+                       valore === Gioco.JOLLY ||
+                       this.simbolo === Gioco.JOLLY;
+            }
+
+            fine() {
+                clearInterval(this.timerId);
+                this.timerId = null;
+                this.mostraPunti();
+            }
+
+            mostraPunti() {
+                this.messaggio.innerText = "Hai fatto " + this.punti + " punti";
+                this.aggiornaBottoneStart(false);
+            }
+
+            aggiornaBottoneStart(disabilitato) {
+                this.startButton.disabled = disabilitato;
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const gioco = new Gioco();
+            gioco.costruisci();
+        });
+        </script>
+    </head>
+
+    <body>
+        <div id="contenitore">
+        <div id="tabella">
+        </div>
+        <p id="prossima"></p>
+        </div>
+        <div id="keypad">
+              <button id="start" type="button">Avvia</button>
+        </div>
+        <p id="messaggio"></p> 
+    </body>
+</html>
