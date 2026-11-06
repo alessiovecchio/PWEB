@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="it">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bacheca delle attività</title>
+  <style>
+    body {
+      margin: 0;
+      font: 16px Arial, sans-serif;
+      background: lightyellow;
+    }
+    header {
+      padding: 5px;
+      background: green;
+      color: white;
+      text-align: center;
+    }
+    main {
+      max-width: 1100px;
+      margin: 22px auto;
+      padding: 0 18px;
+    }
+    #creazione {
+      display: grid;
+      grid-template-columns: 2fr 1fr auto;
+      gap: 12px;
+      align-items: end;
+      padding: 16px;
+      background: white;
+      border: 1px solid black;
+    }
+    label {
+      display: grid;
+      gap: 5px;
+      font-weight: bold;
+    }
+    input, select, button {
+      padding: 9px;
+      font: inherit;
+    }
+    input.errore {
+      border: 2px solid red;
+    }
+    button {
+      border-radius: 4px;
+      background: darkgreen;
+      color: white;
+      font-weight: bold;
+    }
+    button:disabled {
+      background: lightgray;
+    }
+    #filtri {
+      display: flex;
+      gap: 8px;
+      margin: 15px 0;
+    }
+    #filtri button.attivo {
+      background: darkorange;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .colonna {
+      min-height: 400px;
+      padding: 15px;
+      border: 1px solid black;
+      border-radius: 8px;
+      background: white;
+    }
+    .colonna h2 {
+      margin: 0 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 3px solid darkgreen;
+    }
+    .scheda {
+      margin-bottom: 10px;
+      padding: 10px;
+      border: 1px solid black;
+      border-radius: 5px;
+      background: lightgreen;
+    }
+    .scheda h3 {
+      margin: 0 0 10px;
+    }
+    .azioni {
+      display: flex;
+      gap: 6px;
+    }
+    .azioni button {
+      padding: 6px 8px;
+      font-size: 1rem;
+    }
+
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Bacheca delle attività</h1>
+  </header>
+  <main>
+    <section id="creazione">
+      <label>Titolo attività<input id="titolo" maxlength="30" placeholder="Preparare relazione"></label>
+      <label>Priorità<select id="priorita">
+          <option value="bassa">Bassa</option>
+          <option value="media">Media</option>
+          <option value="alta">Alta</option>
+        </select>
+      </label>
+      <button id="crea" disabled>Crea attività</button>
+    </section>
+    <nav id="filtri">
+      <button data-filtro="tutte" class="attivo">Tutte</button>
+      <button data-filtro="alta">Alta</button>
+      <button data-filtro="media">Media</button>
+      <button data-filtro="bassa">Bassa</button>
+    </nav>
+    <section id="board">
+      <div class="colonna" data-stato="da-fare">
+        <h2>Da fare <span></span></h2>
+        <div></div>
+      </div>
+      <div class="colonna" data-stato="in-corso">
+        <h2>In corso <span></span></h2>
+        <div></div>
+      </div>
+      <div class="colonna" data-stato="completata">
+        <h2>Completate <span></span></h2>
+        <div></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    "use strict";
+    class Attivita {
+      constructor(id, titolo, priorita, stato = "da-fare") { 
+        this.id = id;
+        this.titolo = titolo;
+        this.priorita = priorita;
+        this.stato = stato;
+      }
+    }
+    class Bacheca {
+      constructor() {
+        this.chiave = "pweb_bacheca_attivita";
+        this.attivita = this.carica(); 
+        this.filtro = "tutte";
+        this.titolo = document.getElementById("titolo"); 
+        this.priorita = document.getElementById("priorita");
+        this.creaBtn = document.getElementById("crea"); 
+        this.board = document.getElementById("board");
+        this.collegaEventi();
+        this.valida(); 
+        this.mostra();
+      }
+      carica() { 
+        try { 
+          return (JSON.parse(localStorage.getItem(this.chiave)) || []).map(a => new Attivita(a.id, a.titolo, a.priorita, a.stato)); 
+        } catch { 
+          return []; 
+        } 
+      }
+      salva() { 
+        localStorage.setItem(this.chiave, JSON.stringify(this.attivita)); 
+      }
+      titoloValido() { 
+        return /^[A-Za-z0-9][A-Za-z0-9 ]{4,29}$/.test(this.titolo.value.trim()); 
+      }
+      valida() { 
+        const ok = this.titoloValido(); 
+        this.titolo.classList.toggle("errore", this.titolo.value !== "" && !ok); 
+        this.creaBtn.disabled = !ok; 
+      }
+      collegaEventi() {
+        this.titolo.addEventListener("input", () => this.valida());
+        this.creaBtn.addEventListener("click", () => this.crea());
+        document.getElementById("filtri").addEventListener("click", e => { 
+          if (!e.target.dataset.filtro) return; 
+          this.filtro = e.target.dataset.filtro; 
+          document.querySelectorAll("#filtri button").forEach(b => b.classList.toggle("attivo", b === e.target)); 
+          this.mostra(); 
+        });
+        this.board.addEventListener("click", e => this.azione(e));
+      }
+      crea() { 
+        if (this.creaBtn.disabled) return; 
+        this.attivita.push(new Attivita(Date.now(), this.titolo.value.trim(), this.priorita.value)); 
+        this.titolo.value = ""; 
+        this.priorita.value = "bassa"; 
+        this.valida(); 
+        this.salva(); 
+        this.mostra(); 
+      }
+      azione(e) {
+        const button = e.target.closest("button[data-azione]"); 
+        if (!button) return;
+        const id = Number(button.closest(".scheda").dataset.id); 
+        const a = this.attivita.find(x => x.id === id); 
+        if (!a) return;
+        if (button.dataset.azione === "elimina") 
+          this.attivita = this.attivita.filter(x => x.id !== id);
+        if (button.dataset.azione === "avanti") 
+          a.stato = a.stato === "da-fare" ? "in-corso" : "completata";
+        if (button.dataset.azione === "indietro") 
+          a.stato = a.stato === "completata" ? "in-corso" : "da-fare";
+        this.salva(); 
+        this.mostra();
+      }
+      mostra() {
+        document.querySelectorAll(".colonna").forEach(col => {
+          const stato = col.dataset.stato; 
+          const contenitore = col.lastElementChild; 
+          contenitore.replaceChildren();
+          const elenco = this.attivita.filter(a => a.stato === stato && (this.filtro === "tutte" || a.priorita === this.filtro));
+          col.querySelector("h2 span").textContent = `(${elenco.length})`;
+          elenco.forEach(a => {
+            const card = document.createElement("article"); 
+            card.className = `scheda ${a.priorita}`; 
+            card.dataset.id = a.id;
+            const h = document.createElement("h3"); 
+            h.textContent = a.titolo;
+            const p = document.createElement("p"); 
+            p.textContent = `Priorità: ${a.priorita}`;
+            const az = document.createElement("div"); 
+            az.className = "azioni";
+            if (stato !== "da-fare") 
+              az.append(this.bottone("<", "indietro"));
+            if (stato !== "completata") 
+              az.append(this.bottone(">", "avanti"));
+            az.append(this.bottone("Elimina", "elimina")); 
+            card.append(h, p, az); 
+            contenitore.append(card);
+          });
+        });
+      }
+      bottone(testo, azione) { 
+        const b = document.createElement("button"); 
+        b.type = "button"; 
+        b.textContent = testo; 
+        b.dataset.azione = azione; 
+        return b; 
+      }
+    }
+    new Bacheca();
+  </script>
+</body>
+</html>
